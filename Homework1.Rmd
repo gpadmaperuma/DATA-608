@@ -1,0 +1,144 @@
+---
+title: "DATA608_Homework1"
+author: "Don Padmaperuma"
+date: "8/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+title: "R Notebook"
+output:
+  html_document: default
+  html_notebook: default
+---
+```{r}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+```
+
+
+**Principles of Data Visualization and Introduction to ggplot2**
+
+I have provided you with data about the 5,000 fastest growing companies in the US, as compiled by Inc. magazine. lets read this in:
+
+```{r}
+inc <- read.csv("https://raw.githubusercontent.com/charleyferrari/CUNY_DATA_608/master/module1/Data/inc5000_data.csv", header= TRUE)
+```
+
+And lets preview this data:
+
+```{r}
+head(inc)
+```
+```{r}
+summary(inc)
+```
+
+Think a bit on what these summaries mean. Use the space below to add some more relevant non-visual exploratory information you think helps you understand this data:
+
+```{r}
+glimpse(inc)
+```
+Above information helped me to clarify that the data set has 5000 company information based on 8 variables (Rank, Name, Growth_Rate, Revenue, Industry, Employees, City and State) as mentioned in introduction.
+
+```{r}
+Top10_Rank <- inc %>% arrange(desc(Growth_Rate)) %>% head(10) %>% select(c(Rank, Name, Growth_Rate,Industry, State))
+Top10_Rank
+```
+
+Above table gives us a glimpse of Top 10 companies with highest Growth rate.   
+
+```{r}
+inc %>%
+  filter(State == "NY") %>%
+  arrange(desc(Growth_Rate)) %>%
+  select(Rank, Name, Growth_Rate, State)
+```
+
+Above information shows us the fastest growing companies in NY. There are 311 companies.
+
+```{r}
+by_state <- inc %>%
+  group_by(State) %>%
+  count() %>%
+  arrange(desc(n)) %>%
+  rename(total_companies = n)
+by_state
+```
+
+Above data shows us the number of fastest growing companies in each state. Based on the data we derived California has the highest number of fastest companies of all. Then comes Texas and New York.
+
+
+## Question 1
+
+Create a graph that shows the distribution of companies in the dataset by State (ie how many are in each state). There are a lot of States, so consider which axis you should use. This visualization is ultimately going to be consumed on a 'portrait' oriented screen (ie taller than wide), which should further guide your layout choices.
+
+
+```{r}
+graph<-ggplot(by_state, aes(x=State, y=total_companies)) + 
+  geom_bar(mapping = aes(x=State, y=total_companies), stat = "identity", color = "black", fill = "blue")+
+  coord_flip()
+
+ggplotly(graph)
+```
+
+
+## Quesiton 2
+
+Lets dig in on the state with the 3rd most companies in the data set. Imagine you work for the state and are interested in how many people are employed by companies in different industries. Create a plot that shows the average and/or median employment by industry for companies in this state (only use cases with full data, use R's `complete.cases()` function.) In addition to this, your graph should show how variable the ranges are, and you should deal with outliers.
+
+Note: I have already find out from my previous part which State is in the third place. That is New York.  
+
+```{r}
+third_place <- inc%>%
+  filter(State == "NY") %>%
+  filter(complete.cases(.))%>%
+  group_by(Industry)%>%
+  summarise(Mean = mean(Employees), Median = median(Employees))%>%
+  gather(statType, Employees, Mean, Median)
+
+third_place
+```
+```{r}
+q2_graph<-ggplot(data = third_place, aes(x=Industry, y=Employees)) + geom_bar(stat = "identity", aes(fill=statType), position = "Dodge")+
+  coord_flip() +
+  labs(title = "Total Employed by Industry in New York")
+
+ggplotly(q2_graph)
+```
+
+
+## Question 3
+
+Now imagine you work for an investor and want to see which industries generate the most revenue per employee. Create a chart that makes this information clear. Once again, the distribution per industry should be shown.
+
+```{r}
+by_industry<- inc%>%
+  filter(complete.cases(.))%>%
+  group_by(Industry)%>%
+  summarize(Total_Rev = sum(Revenue), Total_Emp = sum(Employees), Rev_per_Emp = Total_Rev/Total_Emp)%>%
+  arrange(desc(Rev_per_Emp))
+  
+
+by_industry
+```
+
+```{r}
+q3_graph <- ggplot(data=by_industry, aes(x=reorder(Industry,Rev_per_Emp), y = Rev_per_Emp))+
+  geom_bar(stat = "identity", color = "black", fill = "Blue") +
+  labs(title = "Revenue per Employee by Industry", x = "Industry", y = "Revenue per Employee")+
+  coord_flip()
+
+ggplotly(q3_graph)
+```
+Note: Graph clearly shows that **Computer Hardware Industry** makes the most revenue per employee. 
+
+
+
+
